@@ -1,4 +1,5 @@
 import random
+import asyncio
 from pymongo import ReturnDocument
 from pyrogram.enums import ChatMemberStatus
 from shivu import user_totals_collection, shivuu
@@ -19,16 +20,25 @@ IMAGES = [
 ]
 
 SHAYARI = [
-    "Dil ki hasrat zuban pe aane lagi\n\nTune dekha aur zindagi muskurane lagi\n\nYe ishq ki inteha thi ya deewangi meri\n\nHar soorat me soorat teri nazar aane lagi.",
-    "Kya mangu khuda se aap ko pane ke baad\n\nKiska karu intezar zindagi me apke ane k bad\n\nKyu pyaar pe jaan lutate hain log,\n\nAaj malum huaa hain aap ko pane ke baad..!!",
-    "Tujhe chahte hain Be-Intehan, Par chahna nahi aata..\n\nYe kaisi mohobbat hai, Ki hume kehna nahi aata.\n\nZindagi main aa jao hamari zindagi ban kar,\n\nKe tere bin humain zinda rehna nahi aata.",
-    "Kitna pyar hai tumse ye jan lo,\n\nTum hi zindagi ho meri\n\nIs baat ko maan lo….\n\nTumhe dene ko mere paas\n\nKuchh bhi nahi….\n\nBas ek jaan hai,\n\nJab ji chahe maang lo……!!",
-    "Teri saadgi ko nihaarne ka dil karta hain,\n\nTamaam umr tere naam karne ka dil karta hai,\n\nEk mukammal shayari hain tu kudrat ki,\n\nTuje ghazal banake juban pe lane ka dil krta h.",
-    "Aakhein kholu toh chehra tumhara ho\n\nBand karu toh sapna tumhara ho,\n\nMaar bhi jau toh koyi gam nahi,\n\nAgar kafan ke badle achal tumhara ho.",
-    "Un Haseen palo ko yaad kar rahe the,\n\nAasmaan se aapki baat kar rahe the,\n\nSukun mila jab hume hawao Ne bataya,\n\nAap bhi hame yaad kar rahe the.",
-    "Hasrat hai sirf tumhe pane ki,\n\naur koi khawahish nahi is Dewane ki,\n\nshikwa mujhe tumse nahi khuda se hai,\n\nkya zarurat thi tumhe itna khuubsurat banane ki..?",
-    "Khushbu ki tarah meri har sans main,\n\nPyar apna basane ka wada karo,\n\nRang jitne tumhari mohabbat ke hain,\n\nMere dil me sajane ka wada karo.",
-    "Mann Mein Aap K Har Baat Rhegi\n\nBasti Chhoti Hai Mgar Abaad Rhegi\n\nChahey Ham Bhuladey Zamaney Ko\n\nMgar Aapki Yeh Pyari Si Hansi Hmesha Yaad Rhegi."
+    "Dil ki hasrat zuban pe aane lagi\nTune dekha aur zindagi muskurane lagi\nHar soorat me soorat teri nazar aane lagi.",
+
+    "Kya mangu khuda se aap ko pane ke baad\nKiska karu intezar apke ane ke baad\nAaj malum hua pyaar kya hota hai.",
+
+    "Tujhe chahte hain Be-Intehan\nPar kehna nahi aata\nTere bin zinda rehna nahi aata.",
+
+    "Kitna pyar hai tumse ye jaan lo\nTum hi zindagi ho meri maan lo\nBas ek jaan hai, jab chahe maang lo.",
+
+    "Teri saadgi ko nihaarne ka dil karta hai\nTamaam umr tere naam karne ka dil karta hai\nTu ek mukammal shayari hai.",
+
+    "Aankhein kholu toh chehra tumhara ho\nBand karu toh sapna tumhara ho\nKafan ke badle aanchal tumhara ho.",
+
+    "Un haseen palo ko yaad kar rahe the\nAasmaan se aapki baat kar rahe the\nAap bhi hume yaad kar rahe the.",
+
+    "Hasrat hai sirf tumhe pane ki\nKoi khwahish nahi is deewane ki\nTum itne khoobsurat kyun ho?",
+
+    "Khushbu ki tarah meri har saans mein\nPyar apna basane ka wada karo\nDil mein sajane ka wada karo.",
+
+    "Mann mein aap ki har baat rahegi\nBasti chhoti hai magar abaad rahegi\nAapki hansi hamesha yaad rahegi."
 ]
 
 @shivuu.on_message(filters.command("changetime", case_sensitive=False))
@@ -39,19 +49,25 @@ async def change_time(client: Client, message: Message):
     member = await shivuu.get_chat_member(chat_id, user_id)
 
     if member.status not in ADMINS:
-        await message.reply_text("You are not an Admin.")
+        msg = await message.reply_text("You are not an Admin.")
+        await asyncio.sleep(10)
+        await msg.delete()
         return
 
     args = message.command
     if len(args) != 2:
-        await message.reply_photo(ERROR_IMAGE)
+        msg = await message.reply_photo(
+            photo=ERROR_IMAGE,
+            caption="❌ **Wrong Usage**\n\nPlease use: `/changetime <number>` ♥️"
+        )
+        await asyncio.sleep(10)
+        await msg.delete()
         return
 
     try:
         new_frequency = int(args[1])
         if new_frequency < 1:
-            await message.reply_photo(ERROR_IMAGE)
-            return
+            raise ValueError
 
         data = await user_totals_collection.find_one_and_update(
             {"chat_id": str(chat_id)},
@@ -65,18 +81,22 @@ async def change_time(client: Client, message: Message):
 
         index = data.get("shayari_index", 0) % len(SHAYARI)
 
-        formatted_shayari = SHAYARI[index].replace("\n\n", "\n")
+        caption = f"""❝ {SHAYARI[index]} ❞
 
-        caption = f"""❝ {formatted_shayari} ❞
+(Written By) ( 𝑫𝒐𝒈𝒆𝒔𝒉 𝑩𝒉𝒂𝒊 🍷 )"""
 
-— *𝑫𝒐𝒈𝒆𝒔𝒉 𝑩𝒉𝒂𝒊 🍷*"""
-
-        image = random.choice(IMAGES)
-
-        await message.reply_photo(
-            photo=image,
+        msg = await message.reply_photo(
+            photo=random.choice(IMAGES),
             caption=caption
         )
 
-    except Exception:
-        await message.reply_photo(ERROR_IMAGE)
+        await asyncio.sleep(10)
+        await msg.delete()
+
+    except:
+        msg = await message.reply_photo(
+            photo=ERROR_IMAGE,
+            caption="❌ **Invalid Command**\n\nPlease use: `/changetime <number>` ♥️"
+        )
+        await asyncio.sleep(10)
+        await msg.delete()
