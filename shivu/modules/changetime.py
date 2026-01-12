@@ -7,6 +7,8 @@ from pyrogram.types import Message
 
 ADMINS = [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
 
+ERROR_IMAGE = "https://files.catbox.moe/wh3x8a.jpg"
+
 IMAGES = [
     "https://files.catbox.moe/q6uj9h.jpg",
     "https://files.catbox.moe/6bisuy.jpg",
@@ -29,9 +31,7 @@ SHAYARI = [
     "Mann Mein Aap K Har Baat Rhegi\n\nBasti Chhoti Hai Mgar Abaad Rhegi\n\nChahey Ham Bhuladey Zamaney Ko\n\nMgar Aapki Yeh Pyari Si Hansi Hmesha Yaad Rhegi."
 ]
 
-AUTHOR = "\n\n(Written By) (  𝑫𝒐𝒈𝒆𝒔𝒉 𝑩𝒉𝒂𝒊🍷)"
-
-@shivuu.on_message(filters.command("changetime"))
+@shivuu.on_message(filters.command("changetime", case_sensitive=False))
 async def change_time(client: Client, message: Message):
 
     user_id = message.from_user.id
@@ -42,15 +42,15 @@ async def change_time(client: Client, message: Message):
         await message.reply_text("You are not an Admin.")
         return
 
-    try:
-        args = message.command
-        if len(args) != 2:
-            await message.reply_text("Please use: /changetime NUMBER")
-            return
+    args = message.command
+    if len(args) != 2:
+        await message.reply_photo(ERROR_IMAGE)
+        return
 
+    try:
         new_frequency = int(args[1])
         if new_frequency < 1:
-            await message.reply_text("The message frequency must be greater than or equal to 10.")
+            await message.reply_photo(ERROR_IMAGE)
             return
 
         data = await user_totals_collection.find_one_and_update(
@@ -64,7 +64,13 @@ async def change_time(client: Client, message: Message):
         )
 
         index = data.get("shayari_index", 0) % len(SHAYARI)
-        caption = SHAYARI[index] + AUTHOR
+
+        formatted_shayari = SHAYARI[index].replace("\n\n", "\n")
+
+        caption = f"""❝ {formatted_shayari} ❞
+
+— *𝑫𝒐𝒈𝒆𝒔𝒉 𝑩𝒉𝒂𝒊 🍷*"""
+
         image = random.choice(IMAGES)
 
         await message.reply_photo(
@@ -72,5 +78,5 @@ async def change_time(client: Client, message: Message):
             caption=caption
         )
 
-    except Exception as e:
-        await message.reply_text(f"Failed to change {str(e)}")
+    except Exception:
+        await message.reply_photo(ERROR_IMAGE)
